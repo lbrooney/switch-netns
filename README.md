@@ -17,7 +17,9 @@ You can also specify namespace `--by-file` (for example, `/run/netns/my_netns` o
 ## Build and install
 
 ### Via AUR:
-(TODO)
+```sh
+yay -S switch-netns
+```
 
 ### Manually:
 Installation:
