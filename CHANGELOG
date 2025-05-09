@@ -2,6 +2,7 @@ Latest
 
 - Fixed clang-format issues.
 - A bit of code refactoring.
+- Typo fixes, unhappy path improvements.
 
 Version 1.0.1
 

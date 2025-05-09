@@ -64,7 +64,7 @@ int main(int argc, char** argv) {
 
         if (setns_error_description)
             fprintf(stderr, "`setns()` failed: %s", setns_error_description);
-        
+
         exit(3);
     }
     if (close(params.namespace_fd) != 0) {
@@ -75,13 +75,16 @@ int main(int argc, char** argv) {
     // 6. Execute user-provided command.
     execvpe(params.argv[0], params.argv, env.entries);
 
-    perror("execve failed; could not execute user program");
+    Environment_free(env);
+    perror("execvpe failed");
+    fprintf(stderr, "could not execute user program '%s'\n", params.argv[0]);
     exit(5);
 }
 
 static void show_usage(const char* program_name) {
-    fprintf(stderr, "Usage: %s [--by-name my_ns] -- <command> <args...>\n",
-            program_name);
+    fprintf(stderr, "Usage: %s --by-name my_ns -- <command> <args...>\n", program_name);
+    fprintf(stderr, "       %s --by-file /run/netns/my_ns -- <command> <args...>\n", program_name);
+    fprintf(stderr, "       %s --by-pid 1234 -- <command> <args...>\n", program_name);
 }
 
 static int find_dash(int argc, const char* const* argv) {
@@ -142,15 +145,16 @@ static LaunchParams parse_launch_params(const char* program_name, int argc,
     if (filepath == NULL)
         panic(
             "Internal error: Failed to establish filepath of network "
-            "namespace.")
+            "namespace.");
 
-            int namespace_fd = open(filepath, O_RDONLY);
-    free(filepath);
+    int namespace_fd = open(filepath, O_RDONLY);
     if (namespace_fd < 0) {
         perror("open failed; could not open namespace file");
-        fprintf(stderr, "Could not open file '%s'.", args_info.by_file_arg);
+        fprintf(stderr, "Could not open file '%s'.\n", filepath);
+        free(filepath);
         exit(8);
     }
+    free(filepath);
 
     return (LaunchParams){
         .namespace_fd = namespace_fd,
