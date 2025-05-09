@@ -11,7 +11,7 @@ setcaps: build-dir/switch-netns
 	setcap cap_sys_admin,cap_sys_ptrace=ep ./build-dir/switch-netns
 
 build-dir/switch-netns: build-dir $(SOURCES) $(HEADERS) build-dir/tmp/include/cmdline.h Makefile
-	cc -I./include -I./build-dir/tmp/include -o build-dir/switch-netns ${SOURCES}  build-dir/tmp/include/cmdline.c -lcap
+	cc -O3 -I./include -I./build-dir/tmp/include -o build-dir/switch-netns ${SOURCES}  build-dir/tmp/include/cmdline.c -lcap
 
 build-dir/tmp/include/cmdline.h: build-dir/tmp/include cmdline.ggo
 	gengetopt --input=cmdline.ggo --file-name=cmdline

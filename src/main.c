@@ -16,13 +16,15 @@
 #include <prettify/panic.h>
 
 #include <switch-netns/environment.h>
-#include <switch-netns/capabilities.h>
 #include <cmdline.h>
 #include "prettify/assert.h"
 
 // Checks if CAP_SYS_ADMIN and CAP_SYS_PTRACE are present
 static void check_capabilities(int* required_caps, size_t count,
 						const char* program_name);
+
+
+static char* get_executable_path(const char* program_name);
 
 typedef struct {
 	int namespace_fd;
@@ -205,6 +207,8 @@ static void check_capabilities(cap_value_t* required_caps, size_t count,
 	}
 
 	if (missing_priviliges_count > 0) {
+		char* exe_path = get_executable_path(program_name);
+		
 		fprintf(stderr,
 				"Missing %zu out of %zu capabilities. Aborting due to safety "
 				"reasons.\n\n",
@@ -215,38 +219,32 @@ static void check_capabilities(cap_value_t* required_caps, size_t count,
 				"intent.\n");
 		fprintf(stderr,
 				"If you are the system administrator, you can fix the problem "
-				"via: `sudo %s grant-capabilities`.\n",
-				program_name);
+				"via:\n`$ sudo setcap cap_sys_admin,cap_sys_ptrace=ep %s`.\n",
+				exe_path);
+
+		free(exe_path);
 		exit(11);
 	}
 }
 
-static uint64_t get_parent_capabilities(void) {
-    pid_t ppid = getppid();
-    char path[64];
-    snprintf(path, sizeof(path), "/proc/%d/status", ppid);
+static char* get_executable_path(const char* program_name) {
+    char exe_link_path[1024];
+    snprintf(exe_link_path, sizeof(exe_link_path), "/proc/%llu/exe", (long long unsigned int) getpid());
 
-    FILE* f = fopen(path, "r");
-    if (!f) {
-        perror("fopen /proc/ppid/status");
-        return 0;
-    }
+	char exe_path[8192];
+	memset(exe_path, 0, sizeof(exe_path)); // zero out.
+	if (readlink(exe_link_path, exe_path, sizeof(exe_path) - 1) < 0) {
+		perror("could not get current executable path; falling back to program name");
+		char* string = strdup(program_name);
+		if (string == NULL && program_name != NULL)
+			panic("Failed to allocate memory");
 
-    char line[256];
-    uint64_t cap_eff = 0;
+		return string;
+	} else {
+		char* string = strdup(exe_path);
+		if (string == NULL)
+			panic("Failed to allocate memory");
 
-    while (fgets(line, sizeof(line), f)) {
-        if (strncmp(line, "CapEff:", 7) == 0) {
-            unsigned long long cap = 0;
-            if (sscanf(line + 7, "%llx", &cap) != 1) {
-                fprintf(stderr, "Failed to parse CapEff line\n");
-            } else {
-                cap_eff = cap;
-            }
-            break;
-        }
-    }
-
-    fclose(f);
-    return cap_eff;
+		return string;
+	}
 }
