@@ -1,3 +1,8 @@
+Latest
+
+- Fixed clang-format issues.
+- A bit of code refactoring.
+
 Version 1.0.1
 
 - Code cleanup.
