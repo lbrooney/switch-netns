@@ -1,3 +1,7 @@
 compile_commands.json
 build-dir
 .cache
+pkg/
+src/switch-netns/
+*.pkg.tar.zst
+switch-netns/

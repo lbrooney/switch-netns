@@ -40,6 +40,10 @@ build-dir:
 
 clean:
 	rm -rf build-dir
+	rm -rf pkg/
+	rm -rf src/switch-netns/
+	rm -f *.pkg.tar.zst
+	rm -rf switch-netns/
 
 .PHONY: compile_commands.json
 compile_commands.json:
