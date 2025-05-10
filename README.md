@@ -1,6 +1,7 @@
 # switch-netns
 
 Simple & secure C utility to change network namespaces without being root.
+A wrapper around `setns()` syscall, with permission checks and command line parsing.
 
 Usage:
 ```sh
@@ -22,6 +23,7 @@ yay -S switch-netns
 ```
 
 ### Manually:
+
 Installation:
 ```sh
 $ make build
@@ -32,3 +34,9 @@ Uninstallation:
 ```sh
 $ sudo make uninstall
 ```
+
+### Dependencies
+
+- `libcap`,
+- `gengetopt` (build dependency),
+- a C compiler.
