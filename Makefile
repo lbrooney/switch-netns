@@ -15,8 +15,8 @@ build-dir/switch-netns: build-dir $(SOURCES) $(HEADERS) build-dir/tmp/include/cm
 
 build-dir/tmp/include/cmdline.h: build-dir/tmp/include cmdline.ggo
 	gengetopt --input=cmdline.ggo --file-name=cmdline
-	mv cmdline.h build-dir/tmp/include/
-	mv cmdline.c build-dir/tmp/include/
+	mv -f cmdline.h build-dir/tmp/include/
+	mv -f cmdline.c build-dir/tmp/include/
 
 install: build-dir/switch-netns
 	echo "Installing."
@@ -47,4 +47,4 @@ clean:
 
 .PHONY: compile_commands.json
 compile_commands.json:
-	bear -- make
+	bear -- make build
