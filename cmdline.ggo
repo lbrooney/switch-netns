@@ -17,6 +17,6 @@ Usage examples:
 defgroup "Network_namespace_resolution_way" groupdesc="Pick a way to select network namespace" required
 
 groupoption "by-file" f "By filepath   (check out `/run/netns/` for named namespaces)" group="Network_namespace_resolution_way" string
-groupoption "by-name" n "By name       (same as `--by-file /run/netns/<name>`)"        group="Network_namespace_resolution_way" string
+groupoption "by-name" n "By name       (same as `--by-file /run/netns/<name>`, plus `/etc/netns/<name>/` files, like `ip netns exec`)" group="Network_namespace_resolution_way" string
 groupoption "by-pid"  p "By Process ID (same as `--by-file /proc/<pid>/ns/net/`)"      group="Network_namespace_resolution_way" long
 groupoption "by-fd"   d "By file descriptor"                                           group="Network_namespace_resolution_way" int
