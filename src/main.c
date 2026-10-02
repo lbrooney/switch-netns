@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/auxv.h>
 #include <sys/capability.h>
 #include <sys/mount.h>
 #include <sys/stat.h>
@@ -50,6 +51,7 @@ static void show_setcap_fix_suggestion(const char* program_name);
 static bool is_valid_netns_name(const char* name);
 static bool is_root_controlled(const char* path);
 static bool apply_netns_etc(const char* netns_name);
+static char** get_original_environment(void);
 
 int main(int argc, char** argv) {
     const char* program_name = argv[0];
@@ -94,7 +96,7 @@ int main(int argc, char** argv) {
     // File is opened with O_CLOEXEC, so it will be closed automatically.
 
     // Execute user-provided command.
-    execvp(params.argv[0], params.argv);
+    execvpe(params.argv[0], params.argv, get_original_environment());
 
     // Handle error
     perror("execvpe failed");
@@ -387,4 +389,52 @@ static bool apply_netns_etc(const char* netns_name) {
 
     closedir(dir);
     return success;
+}
+
+// Because of `setcap`, glibc runs in secure-execution mode and removes variables like `TMPDIR`,
+// `LD_LIBRARY_PATH` or `LD_PRELOAD` from `environ` before `main()`. The command doesn't keep our
+// capabilities (and a privileged command gets filtered by its own glibc), so it should get the
+// environment we were started with. The original strings are still in our memory:
+// `/proc/self/environ` isn't readable by a non-dumpable (privileged) process, but
+// `/proc/self/stat` tells where they are.
+static char** get_original_environment(void) {
+    if (!getauxval(AT_SECURE))
+        return environ;
+
+    char stat_line[4096] = "";
+    FILE* stat_file = fopen("/proc/self/stat", "re");
+    if (stat_file != NULL) {
+        if (fgets(stat_line, sizeof(stat_line), stat_file) == NULL)
+            stat_line[0] = '\0';
+        fclose(stat_file);
+    }
+
+    // `env_start` and `env_end` are fields 50 and 51 (see `man 5 proc_pid_stat`).
+    // `comm` (field 2) may contain spaces and parentheses, so count from the last `)`.
+    unsigned long env_start = 0;
+    unsigned long env_end = 0;
+    char* field = strrchr(stat_line, ')');
+    for (int i = 2; field != NULL && i < 50; i++)
+        field = strchr(field + 1, ' ');
+    if (field == NULL || sscanf(field, "%lu %lu", &env_start, &env_end) != 2 || env_start == 0 ||
+        env_end < env_start) {
+        fprintf(stderr, "Warning: could not recover the original environment; variables like `TMPDIR` will be missing.\n");
+        return environ;
+    }
+
+    // The area holds NUL-terminated `NAME=value` strings, back to back.
+    char* const start = (char*)(uintptr_t)env_start;
+    char* const end = (char*)(uintptr_t)env_end;
+
+    size_t count = 0;
+    for (char* s = start; s < end; s += strnlen(s, end - s) + 1)
+        count++;
+
+    char** env = (char**)calloc(count + 1, sizeof(char*));
+    assert_alloc(env);
+    size_t i = 0;
+    for (char* s = start; s < end; s += strnlen(s, end - s) + 1)
+        env[i++] = s;
+
+    return env;
 }
