@@ -22,10 +22,12 @@ install: build-dir/switch-netns
 	echo "Installing."
 	install -Dm755 build-dir/switch-netns /usr/bin/switch-netns
 	setcap cap_sys_admin,cap_sys_ptrace=ep /usr/bin/switch-netns
+	install -Dm644 completions/switch-netns.fish /usr/share/fish/vendor_completions.d/switch-netns.fish
 
 uninstall:
 	echo "Uninstalling."
 	rm -rf /usr/bin/switch-netns
+	rm -f /usr/share/fish/vendor_completions.d/switch-netns.fish
 
 # Directories
 
